@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Animación FBX - Control WASD</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; color: white; font-family: Arial, sans-serif; }
+    #ui {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">Controles: WASD para moverte • Q/E girar • R reiniciar</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/FBXLoader.js"></script>
+
+  <script>
+    let scene, camera, renderer, clock, mixer;
+    const keys = { w:false, a:false, s:false, d:false, q:false, e:false };
+    let player, actions = {}, activeAction, velocity = new THREE.Vector3();
+
+    init();
+    animate();
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87ceeb);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 4, 10);
+
+      renderer = new THREE.WebGLRenderer({antialias:true});
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(5,10,7);
+      light.castShadow = true;
+      scene.add(light);
+
+      const amb = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(amb);
+
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(200,200),
+        new THREE.MeshStandardMaterial({color:0x4c8a4c})
+      );
+      ground.rotation.x = -Math.PI/2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      clock = new THREE.Clock();
+
+      // --- Cargar modelo FBX ---
+      const loader = new THREE.FBXLoader();
+      loader.load('models/idle.fbx', (obj) => {
+        player = obj;
+        player.scale.set(0.01,0.01,0.01);
+        player.traverse(o => { if (o.isMesh) o.castShadow = true; });
+        scene.add(player);
+
+        mixer = new THREE.AnimationMixer(player);
+        actions.idle = mixer.clipAction(obj.animations[0]);
+        actions.idle.play();
+        activeAction = actions.idle;
+
+        // Cargar otras animaciones
+        loader.load('models/walk.fbx', (w) => actions.walk = mixer.clipAction(w.animations[0]));
+        loader.load('models/run.fbx', (r) => actions.run = mixer.clipAction(r.animations[0]));
+      });
+
+      window.addEventListener('resize', onResize);
+      window.addEventListener('keydown', keyDown);
+      window.addEventListener('keyup', keyUp);
+    }
+
+    function keyDown(e) {
+      switch(e.key.toLowerCase()) {
+        case 'w': keys.w = true; break;
+        case 'a': keys.a = true; break;
+        case 's': keys.s = true; break;
+        case 'd': keys.d = true; break;
+        case 'q': keys.q = true; break;
+        case 'e': keys.e = true; break;
+        case 'r': if(player) resetPosition(); break;
+      }
+    }
+
+    function keyUp(e) {
+      switch(e.key.toLowerCase()) {
+        case 'w': keys.w = false; break;
+        case 'a': keys.a = false; break;
+        case 's': keys.s = false; break;
+        case 'd': keys.d = false; break;
+        case 'q': keys.q = false; break;
+        case 'e': keys.e = false; break;
+      }
+    }
+
+    function resetPosition() {
+      player.position.set(0,0,0);
+      player.rotation.set(0,0,0);
+      velocity.set(0,0,0);
+      switchAnimation('idle');
+    }
+
+    function switchAnimation(name) {
+      if (!actions[name] || activeAction === actions[name]) return;
+      activeAction.fadeOut(0.3);
+      activeAction = actions[name];
+      activeAction.reset().fadeIn(0.3).play();
+    }
+
+    function updateMovement(delta) {
+      if (!player) return;
+
+      const moveSpeed = keys.w ? 5 : 0;
+      const rotationSpeed = 2.5;
+
+      if (keys.q) player.rotation.y += rotationSpeed * delta;
+      if (keys.e) player.rotation.y -= rotationSpeed * delta;
+
+      if (keys.w) {
+        const forward = new THREE.Vector3(0,0,-1).applyQuaternion(player.quaternion);
+        player.position.addScaledVector(forward, moveSpeed * delta);
+        switchAnimation('walk');
+      } else {
+        switchAnimation('idle');
+      }
+
+      if (mixer) mixer.update(delta);
+      camera.position.lerp(
+        player.position.clone().add(new THREE.Vector3(0, 3, 8).applyQuaternion(player.quaternion)),
+        0.1
+      );
+      camera.lookAt(player.position);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      updateMovement(delta);
+      renderer.render(scene, camera);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+  </script>
+</body>
+</html>
