@@ -78,8 +78,8 @@
         activeAction = actions.idle;
 
         // Cargar otras animaciones
-        loader.load('models/walk.fbx', (w) => actions.walk = mixer.clipAction(w.animations[0]));
-        loader.load('models/run.fbx', (r) => actions.run = mixer.clipAction(r.animations[0]));
+        loader.load('Models/Walking .fbx', (w) => actions.walk = mixer.clipAction(w.animations[0]));
+        loader.load('Models/Running Arc.fbx', (r) => actions.run = mixer.clipAction(r.animations[0]));
       });
 
       window.addEventListener('resize', onResize);
@@ -164,5 +164,6 @@
   </script>
 </body>
 </html>
+
 
 
