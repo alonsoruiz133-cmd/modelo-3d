@@ -19,7 +19,8 @@
 </head>
 <body>
   <div id="ui">Controles: WASD para moverte • Q/E girar • R reiniciar</div>
-
+  
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/FBXLoader.js"></script>
 
@@ -65,7 +66,7 @@
 
       // --- Cargar modelo FBX ---
       const loader = new THREE.FBXLoader();
-      loader.load('models/idle.fbx', (obj) => {
+      loader.load('Models/Idle.fbx', (obj) => {
         player = obj;
         player.scale.set(0.01,0.01,0.01);
         player.traverse(o => { if (o.isMesh) o.castShadow = true; });
@@ -163,4 +164,5 @@
   </script>
 </body>
 </html>
+
 
